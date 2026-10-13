@@ -1,255 +1,444 @@
 <!DOCTYPE html>
 <html lang="nl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Fusion DAW</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: #10111a;
-      color: white;
-      font-family: Arial, sans-serif;
-    }
-    header {
-      padding: 22px 16px;
-      background: #1b1d2b;
-      border-bottom: 1px solid #34364a;
-    }
-    h1 { margin: 0 0 6px; color: #9c8cff; }
-    p { color: #b8bad0; }
-    main { padding: 16px; max-width: 900px; margin: auto; }
-    .switch { display: flex; gap: 10px; margin: 20px 0; }
-    button {
-      background: #292b40;
-      color: white;
-      border: 1px solid #454762;
-      padding: 12px;
-      border-radius: 10px;
-      font-size: 15px;
-      cursor: pointer;
-    }
-    .switch button { flex: 1; }
-    button.active, .play {
-      background: #7965ed;
-      border-color: #7965ed;
-    }
-    .panel {
-      background: #1b1d2b;
-      padding: 16px;
-      border-radius: 14px;
-      margin-bottom: 16px;
-    }
-    .track {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin: 12px 0;
-    }
-    .track-name { width: 75px; font-size: 13px; }
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(8, minmax(0, 1fr));
-      gap: 5px;
-      flex: 1;
-    }
-    .step { padding: 0; height: 30px; }
-    .step.on { background: #24c8a5; color: #10111a; }
-    #status { min-height: 22px; color: #24c8a5; }
-    .small { font-size: 13px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fusion DAW Studio</title>
+<style>
+:root {
+  --bg:#0a0a12; --panel:#151522; --line:#303047;
+  --purple:#9570ff; --cyan:#35e6d0; --text:#f5f3ff;
+}
+* { box-sizing:border-box }
+body {
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;
+}
+header {
+  padding:20px 16px; background:linear-gradient(120deg,#21143c,#101a30);
+  border-bottom:1px solid var(--line);
+}
+.logo { font-size:27px;font-weight:900;letter-spacing:1px }
+.logo span { color:var(--purple) }
+.sub { color:#aaa5c7;font-size:12px;margin-top:5px }
+main { max-width:1000px;margin:auto;padding:14px }
+h2 { font-size:17px;margin:0 0 14px }
+h3 { font-size:14px;margin:0 0 10px }
+.panel {
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:15px;padding:15px;margin-bottom:14px;
+  box-shadow:0 5px 24px #0002;
+}
+.modes { display:flex;gap:8px;margin-bottom:14px }
+button {
+  background:#25253a;color:white;border:1px solid #42425b;
+  padding:11px;border-radius:9px;font-weight:650;
+  cursor:pointer;font-size:13px;
+}
+button.active,.primary { background:var(--purple);border-color:var(--purple) }
+.modes button { flex:1 }
+.toolbar { display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px }
+.toolbar button { flex:1 }
+.status { color:var(--cyan);font-size:12px;min-height:18px;margin-top:10px }
+.stats { display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px }
+.stat { background:#1e1d30;padding:11px;border-radius:10px }
+.stat strong { display:block;font-size:19px;color:var(--cyan) }
+.stat span { font-size:10px;color:#aaa5c7 }
+.track { display:flex;align-items:center;gap:8px;margin:10px 0 }
+.trackname { width:58px;flex-shrink:0;font-size:11px }
+.steps { display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px;flex:1 }
+.step { padding:0;height:31px;min-width:0;background:#26263a;border:0 }
+.step.on { background:var(--cyan);color:#081016 }
+.step.playing { outline:2px solid white }
+.roll-wrap { overflow-x:auto }
+.roll { min-width:520px }
+.roll-row { display:grid;grid-template-columns:55px repeat(16,minmax(0,1fr));gap:3px;margin:4px 0 }
+.note-label { font-size:10px;color:#c6bedf;display:flex;align-items:center }
+.note {
+  height:26px;padding:0;background:#222236;border:0;border-radius:4px;
+}
+.note.on { background:var(--purple);box-shadow:0 0 8px #9570ff55 }
+.note:nth-child(4n+2) { border-left:1px solid #55516d }
+.mixer-channel { background:#202033;border-radius:10px;padding:10px 7px;text-align:center;min-width:0 }
+.mixer { display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px }
+.mixer-channel label { font-size:10px;display:block;margin-bottom:8px }
+.mixer-channel input { width:100%;accent-color:var(--cyan) }
+.level { font-size:10px;color:var(--cyan);margin-top:6px }
+input[type=range] { accent-color:var(--purple) }
+input[type=number] {
+  width:65px;background:#25253a;color:white;border:1px solid var(--line);
+  border-radius:7px;padding:7px;
+}
+.footer { text-align:center;color:#716d8d;font-size:11px;padding:10px }
+@media(min-width:700px) {
+  main { padding:24px }
+  .workspace { display:grid;grid-template-columns:1fr 1fr;gap:14px }
+}
+</style>
 </head>
 <body>
-  <header>
-    <h1>Fusion DAW</h1>
-    <div>Jouw studio. Jouw sound.</div>
-  </header>
+<header>
+  <div class="logo">FUSION <span>DAW</span></div>
+  <div class="sub">YOUR SOUND. YOUR WORLD. — STUDIO EDITION</div>
+</header>
 
-  <main>
-    <h2>Kies je werkwijze</h2>
-    <div class="switch">
-      <button id="logicBtn" class="active" onclick="setMode('logic')">
-        Logic Mode
-      </button>
-      <button id="flBtn" onclick="setMode('fl')">
-        FL Mode
-      </button>
+<main>
+  <div class="stats">
+    <div class="stat"><strong id="bpmStat">120</strong><span>BPM</span></div>
+    <div class="stat"><strong id="modeStat">FL</strong><span>WORKSPACE</span></div>
+    <div class="stat"><strong id="noteStat">0</strong><span>MELODIE-NOTEN</span></div>
+  </div>
+
+  <div class="panel">
+    <div class="modes">
+      <button id="logicBtn" onclick="setMode('logic')">🎙 Logic Mode</button>
+      <button id="flBtn" class="active" onclick="setMode('fl')">⚡ FL Mode</button>
     </div>
+    <div class="toolbar">
+      <button class="primary" id="playBtn" onclick="togglePlay()">▶ Play</button>
+      <button onclick="stopPlay()">■ Stop</button>
+      <button onclick="saveProject()">💾 Save</button>
+      <button onclick="loadProject()">📂 Load</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <label for="bpm">Tempo</label>
+      <input id="bpm" type="number" min="50" max="200" value="120"
+        onchange="updateBpm()">
+      <span style="font-size:12px;color:#aaa5c7">BPM</span>
+    </div>
+    <div class="status" id="status">Studio ready. Maak je eerste beat.</div>
+  </div>
 
+  <div class="workspace">
     <section class="panel">
-      <h2 id="modeTitle">Logic Studio</h2>
-      <p id="modeDescription">
-        Werk met meerdere sporen voor vocals, drums en instrumenten.
-      </p>
-      <button class="play" onclick="playBeat()">▶ Test beat</button>
-      <button onclick="stopBeat()">■ Stop</button>
-      <p id="status">Studio klaar.</p>
-    </section>
-
-    <section class="panel">
-      <h2>Drum sequencer</h2>
-      <p class="small">Tik op vakjes om je beat te maken.</p>
+      <h2>🥁 Drum machine</h2>
+      <p class="sub">Tik op de vakjes om je beat te programmeren.</p>
       <div id="sequencer"></div>
     </section>
 
     <section class="panel">
-      <h2>Project</h2>
-      <button onclick="saveProject()">Project opslaan</button>
-      <button onclick="loadProject()">Project laden</button>
-      <p class="small">
-        Dit prototype bewaart je patroon lokaal op dit apparaat.
-        Cloudopslag en echte audio-opname voegen we later toe.
-      </p>
+      <h2>🎹 Piano roll</h2>
+      <p class="sub">Tik op vakjes om noten aan of uit te zetten.</p>
+      <div class="roll-wrap"><div class="roll" id="pianoRoll"></div></div>
+      <div class="toolbar" style="margin-top:12px">
+        <button onclick="clearMelody()">Clear notes</button>
+        <button class="primary" onclick="playMelody()">▶ Play melody</button>
+      </div>
     </section>
-  </main>
+  </div>
 
-  <script>
-    const instruments = ["Kick", "Snare", "Hi-hat", "Clap"];
-    let mode = "logic";
-    let audioContext = null;
-    let beatTimer = null;
-    let currentStep = 0;
+  <section class="panel">
+    <h2>🎚️ Mixer</h2>
+    <p class="sub">Regel het volume van elk drumkanaal.</p>
+    <div class="mixer" id="mixer"></div>
+  </section>
 
-    const pattern = instruments.map(() => Array(8).fill(false));
+  <section class="panel">
+    <h2>✨ Studio tools</h2>
+    <div class="toolbar">
+      <button onclick="testSound()">🔊 Test sound</button>
+      <button onclick="exportProject()">📤 Export project</button>
+      <button onclick="resetProject()">↻ Reset</button>
+    </div>
+    <p class="sub">
+      Je project wordt lokaal opgeslagen in deze browser. De exportknop
+      maakt een JSON-projectbestand, geen afgewerkte audio-export.
+    </p>
+  </section>
 
-    pattern[0][0] = true;
-    pattern[0][4] = true;
-    pattern[1][2] = true;
-    pattern[1][6] = true;
-    [0, 2, 4, 6].forEach(i => pattern[2][i] = true);
+  <div class="footer">FUSION DAW STUDIO • Prototype 0.2</div>
+</main>
 
-    function buildSequencer() {
-      const container = document.getElementById("sequencer");
-      container.innerHTML = "";
+<script>
+const names = ["Kick","Snare","Hi-hat","Clap"];
+const pitches = [
+  {name:"C5",freq:523.25},
+  {name:"B4",freq:493.88},
+  {name:"A4",freq:440},
+  {name:"G4",freq:392},
+  {name:"F4",freq:349.23},
+  {name:"E4",freq:329.63},
+  {name:"D4",freq:293.66},
+  {name:"C4",freq:261.63}
+];
 
-      instruments.forEach((name, row) => {
-        const track = document.createElement("div");
-        track.className = "track";
+let mode = "fl";
+let ctx = null;
+let timer = null;
+let step = 0;
+let playing = false;
+let drum = names.map(() => Array(8).fill(false));
+let melody = pitches.map(() => Array(16).fill(false));
+let volumes = [80,70,55,65];
 
-        const label = document.createElement("div");
-        label.className = "track-name";
-        label.textContent = name;
-        track.appendChild(label);
+drum[0][0] = true;
+drum[0][4] = true;
+drum[1][2] = true;
+drum[1][6] = true;
+[0,2,4,6].forEach(i => drum[2][i] = true);
+melody[7][0] = true;
+melody[5][4] = true;
+melody[3][8] = true;
+melody[5][12] = true;
 
-        const steps = document.createElement("div");
-        steps.className = "steps";
+function audio() {
+  if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if (ctx.state === "suspended") ctx.resume();
+  return ctx;
+}
 
-        pattern[row].forEach((on, col) => {
-          const button = document.createElement("button");
-          button.className = "step" + (on ? " on" : "");
-          button.textContent = col + 1;
-          button.onclick = () => {
-            pattern[row][col] = !pattern[row][col];
-            buildSequencer();
-          };
-          steps.appendChild(button);
-        });
+function setStatus(message) {
+  document.getElementById("status").textContent = message;
+}
 
-        track.appendChild(steps);
-        container.appendChild(track);
-      });
-    }
+function setMode(value) {
+  mode = value;
+  document.getElementById("logicBtn").classList.toggle("active", mode === "logic");
+  document.getElementById("flBtn").classList.toggle("active", mode === "fl");
+  document.getElementById("modeStat").textContent = mode === "fl" ? "FL" : "LOGIC";
+  setStatus(mode === "fl" ? "FL Mode geselecteerd." : "Logic Mode geselecteerd.");
+}
 
-    function setMode(newMode) {
-      mode = newMode;
-      document.getElementById("logicBtn").classList.toggle(
-        "active", mode === "logic"
-      );
-      document.getElementById("flBtn").classList.toggle(
-        "active", mode === "fl"
-      );
+function updateBpm() {
+  const field = document.getElementById("bpm");
+  field.value = Math.max(50,Math.min(200,Number(field.value)||120));
+  document.getElementById("bpmStat").textContent = field.value;
+  if (playing) startClock();
+}
 
-      document.getElementById("modeTitle").textContent =
-        mode === "logic" ? "Logic Studio" : "FL Beat Lab";
+function makeDrums() {
+  const root = document.getElementById("sequencer");
+  root.innerHTML = "";
+  names.forEach((name,r) => {
+    const row = document.createElement("div");
+    row.className = "track";
+    const label = document.createElement("div");
+    label.className = "trackname";
+    label.textContent = name;
+    row.appendChild(label);
+    const grid = document.createElement("div");
+    grid.className = "steps";
+    drum[r].forEach((on,c) => {
+      const b = document.createElement("button");
+      b.className = "step" + (on ? " on" : "") + (playing && c === step ? " playing" : "");
+      b.textContent = c+1;
+      b.setAttribute("aria-label",name+" step "+(c+1));
+      b.onclick = () => { drum[r][c] = !drum[r][c]; makeDrums(); };
+      grid.appendChild(b);
+    });
+    row.appendChild(grid);
+    root.appendChild(row);
+  });
+}
 
-      document.getElementById("modeDescription").textContent =
-        mode === "logic"
-          ? "Werk met meerdere sporen voor vocals, drums en instrumenten."
-          : "Bouw ritmes met een step sequencer en maak je eigen grooves.";
+function makePiano() {
+  const root = document.getElementById("pianoRoll");
+  root.innerHTML = "";
+  pitches.forEach((pitch,r) => {
+    const row = document.createElement("div");
+    row.className = "roll-row";
+    const label = document.createElement("div");
+    label.className = "note-label";
+    label.textContent = pitch.name;
+    row.appendChild(label);
+    melody[r].forEach((on,c) => {
+      const b = document.createElement("button");
+      b.className = "note" + (on ? " on" : "");
+      b.setAttribute("aria-label",pitch.name+" step "+(c+1));
+      b.onclick = () => {
+        melody[r][c] = !melody[r][c];
+        if (melody[r][c]) playTone(pitch.freq,0.15,0.12);
+        makePiano();
+        updateNoteCount();
+      };
+      row.appendChild(b);
+    });
+    root.appendChild(row);
+  });
+  updateNoteCount();
+}
 
-      document.getElementById("status").textContent =
-        mode === "logic" ? "Logic Mode geselecteerd." : "FL Mode geselecteerd.";
-    }
+function updateNoteCount() {
+  document.getElementById("noteStat").textContent =
+    melody.reduce((sum,row) => sum + row.filter(Boolean).length,0);
+}
 
-    function sound(type) {
-      if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioContext.state === "suspended") audioContext.resume();
+function makeMixer() {
+  const root = document.getElementById("mixer");
+  root.innerHTML = "";
+  names.forEach((name,i) => {
+    const channel = document.createElement("div");
+    channel.className = "mixer-channel";
+    const label = document.createElement("label");
+    label.textContent = name;
+    const range = document.createElement("input");
+    range.type = "range";
+    range.min = 0;
+    range.max = 100;
+    range.value = volumes[i];
+    range.setAttribute("aria-label",name+" volume");
+    const level = document.createElement("div");
+    level.className = "level";
+    level.textContent = volumes[i]+"%";
+    range.oninput = () => {
+      volumes[i] = Number(range.value);
+      level.textContent = volumes[i]+"%";
+    };
+    channel.append(label,range,level);
+    root.appendChild(channel);
+  });
+}
 
-      const osc = audioContext.createOscillator();
-      const gain = audioContext.createGain();
-      osc.connect(gain);
-      gain.connect(audioContext.destination);
+function playTone(freq,duration=0.12,volume=0.15) {
+  const a = audio();
+  const osc = a.createOscillator();
+  const gain = a.createGain();
+  osc.type = "triangle";
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0.0001,a.currentTime);
+  gain.gain.exponentialRampToValueAtTime(Math.max(0.001,volume),a.currentTime+0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001,a.currentTime+duration);
+  osc.connect(gain);
+  gain.connect(a.destination);
+  osc.start();
+  osc.stop(a.currentTime+duration+0.02);
+}
 
-      const now = audioContext.currentTime;
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.5, now + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+function playDrum(type) {
+  const a = audio();
+  const osc = a.createOscillator();
+  const gain = a.createGain();
+  osc.connect(gain);
+  gain.connect(a.destination);
+  const now = a.currentTime;
+  const vol = volumes[type]/100;
+  if (vol <= 0) return;
+  gain.gain.setValueAtTime(Math.max(0.001,vol*0.3),now);
+  gain.gain.exponentialRampToValueAtTime(0.001,now+0.16);
 
-      if (type === 0) {
-        osc.frequency.setValueAtTime(150, now);
-        osc.frequency.exponentialRampToValueAtTime(45, now + 0.15);
-      } else if (type === 1) {
-        osc.type = "triangle";
-        osc.frequency.setValueAtTime(180, now);
-      } else if (type === 2) {
-        osc.type = "square";
-        osc.frequency.setValueAtTime(800, now);
-      } else {
-        osc.type = "sawtooth";
-        osc.frequency.setValueAtTime(400, now);
-      }
+  if (type === 0) {
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(140,now);
+    osc.frequency.exponentialRampToValueAtTime(40,now+0.14);
+  } else {
+    osc.type = type === 2 ? "square" : "triangle";
+    osc.frequency.value = type === 1 ? 190 : type === 2 ? 850 : 400;
+  }
+  osc.start(now);
+  osc.stop(now+0.18);
+}
 
-      osc.start(now);
-      osc.stop(now + 0.2);
-    }
+function tick() {
+  drum.forEach((row,r) => { if (row[step]) playDrum(r); });
+  if (step % 2 === 0) {
+    const col = Math.floor(step/2);
+    melody.forEach((row,r) => {
+      if (row[col]) playTone(pitches[r].freq,0.18,0.16);
+    });
+  }
+  step = (step+1)%8;
+  makeDrums();
+}
 
-    function playBeat() {
-      stopBeat();
-      currentStep = 0;
+function startClock() {
+  if (timer) clearInterval(timer);
+  timer = setInterval(tick,60000/Number(document.getElementById("bpm").value)/2);
+}
 
-      if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      audioContext.resume();
+function togglePlay() {
+  if (playing) { stopPlay(); return; }
+  audio();
+  playing = true;
+  step = 0;
+  document.getElementById("playBtn").textContent = "❚❚ Pause";
+  setStatus("Beat en melodie spelen.");
+  startClock();
+}
 
-      beatTimer = setInterval(() => {
-        pattern.forEach((row, instrument) => {
-          if (row[currentStep]) sound(instrument);
-        });
-        currentStep = (currentStep + 1) % 8;
-      }, 250);
+function stopPlay() {
+  if (timer) clearInterval(timer);
+  timer = null;
+  playing = false;
+  document.getElementById("playBtn").textContent = "▶ Play";
+  makeDrums();
+  setStatus("Playback gestopt.");
+}
 
-      document.getElementById("status").textContent = "Beat speelt!";
-    }
+function playMelody() {
+  audio();
+  melody.forEach((row,r) => row.forEach((on,c) => {
+    if (on) setTimeout(() => playTone(pitches[r].freq,0.18,0.16),c*150);
+  }));
+  setStatus("Melodie afgespeeld.");
+}
 
-    function stopBeat() {
-      if (beatTimer) clearInterval(beatTimer);
-      beatTimer = null;
-      document.getElementById("status").textContent = "Beat gestopt.";
-    }
+function clearMelody() {
+  melody = pitches.map(() => Array(16).fill(false));
+  makePiano();
+  setStatus("Piano roll leeggemaakt.");
+}
 
-    function saveProject() {
-      localStorage.setItem("fusionDAW", JSON.stringify({ pattern, mode }));
-      document.getElementById("status").textContent = "Project lokaal opgeslagen.";
-    }
+function testSound() {
+  playTone(440,0.3,0.2);
+  setStatus("Testgeluid afgespeeld.");
+}
 
-    function loadProject() {
-      const saved = localStorage.getItem("fusionDAW");
-      if (!saved) {
-        document.getElementById("status").textContent = "Nog geen opgeslagen project.";
-        return;
-      }
-      const data = JSON.parse(saved);
-      data.pattern.forEach((row, i) => row.forEach((value, j) => pattern[i][j] = value));
-      setMode(data.mode || "logic");
-      buildSequencer();
-      document.getElementById("status").textContent = "Project geladen.";
-    }
+function saveProject() {
+  try {
+    localStorage.setItem("fusionDAW_v2",JSON.stringify({
+      mode,drum,melody,volumes,bpm:document.getElementById("bpm").value
+    }));
+    setStatus("Project lokaal opgeslagen.");
+  } catch(e) {
+    setStatus("Opslaan mislukt. Controleer browseropslag.");
+  }
+}
 
-    buildSequencer();
-  </script>
+function loadProject() {
+  try {
+    const raw = localStorage.getItem("fusionDAW_v2");
+    if (!raw) { setStatus("Nog geen v2-project opgeslagen."); return; }
+    const data = JSON.parse(raw);
+    if (data.drum) drum = data.drum;
+    if (data.melody) melody = data.melody;
+    if (data.volumes) volumes = data.volumes;
+    document.getElementById("bpm").value = data.bpm || 120;
+    updateBpm();
+    setMode(data.mode || "fl");
+    makeDrums(); makePiano(); makeMixer();
+    setStatus("Project geladen.");
+  } catch(e) { setStatus("Project kon niet worden geladen."); }
+}
+
+function exportProject() {
+  const data = {
+    mode,drum,melody,volumes,bpm:document.getElementById("bpm").value
+  };
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "fusion-daw-project.json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url),1000);
+  setStatus("Projectbestand klaargezet voor export.");
+}
+
+function resetProject() {
+  if (!confirm("Weet je zeker dat je je huidige patroon wilt resetten?")) return;
+  stopPlay();
+  drum = names.map(() => Array(8).fill(false));
+  melody = pitches.map(() => Array(16).fill(false));
+  volumes = [80,70,55,65];
+  makeDrums(); makePiano(); makeMixer();
+  setStatus("Nieuw leeg project gestart.");
+}
+
+makeDrums();
+makePiano();
+makeMixer();
+updateBpm();
+setMode("fl");
+</script>
 </body>
 </html>
