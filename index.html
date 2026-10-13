@@ -1,801 +1,411 @@
 
-
 <!DOCTYPE html>
-
 <html lang="nl">
-
 <head>
-
 <meta charset="UTF-8">
-
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-
 <title>Fusion DAW</title>
-
 <script src="https://unpkg.com/tone@15.1.22/build/Tone.js"></script>
-
 <style>
-
 :root{--bg:#101018;--panel:#1b1b29;--line:#36364b;--text:#f5f5ff;--muted:#a6a6bd;--pink:#ff4fd8;--green:#7dffb3;--blue:#61d9ff}
-
 *{box-sizing:border-box}
-
 body{margin:0;background:var(--bg);color:var(--text);font:14px -apple-system,BlinkMacSystemFont,sans-serif}
-
 header{padding:16px;background:#191923;position:sticky;top:0;z-index:5;border-bottom:1px solid var(--line)}
-
 h1{font-size:23px;margin:0;font-weight:900}h1 span{color:var(--pink)}
-
 h2{font-size:17px;margin:0 0 8px}p{line-height:1.5}
-
 button,input,select{font:inherit}
-
 button,select{color:var(--text);background:#2a2a3b;border:1px solid var(--line);border-radius:9px;padding:10px}
-
 button{cursor:pointer}button.active{background:#52234e;border-color:var(--pink)}
-
 button.primary{background:var(--pink);color:#170d19;font-weight:800;border:0}
-
 button.on{background:var(--green);color:#111;border-color:var(--green)}
-
 .top,.tabs,.transport{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-
 .top{justify-content:space-between;gap:12px}
-
 .transport{margin-top:12px}
-
 .small{font-size:11px;color:var(--muted)}
-
 .status{font-size:12px;color:var(--green);margin-top:10px;min-height:16px}
-
 .tabs{padding:10px;position:sticky;top:115px;background:var(--bg);z-index:4}
-
 .tabs button{flex:1;min-width:70px}
-
 main{max-width:1000px;margin:auto;padding:10px}
-
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
-
 .hint{font-size:12px;color:var(--muted)}
-
 .grid{display:grid;grid-template-columns:repeat(16,minmax(0,1fr));gap:4px}
-
 .drumrow{display:grid;grid-template-columns:56px minmax(0,1fr);gap:6px;align-items:center;margin:8px 0}
-
 .trackname{font-size:11px;color:var(--muted)}
-
 .step{padding:0;min-width:0;height:29px;border-radius:5px}
-
 .step:nth-child(4n+2){border-left:2px solid #65657a}
-
 .step.on{background:var(--pink);color:#111}
-
 .pianorow{display:grid;grid-template-columns:45px repeat(16,minmax(0,1fr));gap:3px;margin:5px 0}
-
 .note{padding:0;min-width:0;height:25px}
-
 .note.on{background:var(--green);color:#111}
-
 .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
-
 .control{background:#242432;border-radius:10px;padding:10px;min-width:0}
-
 .control label{display:block;font-size:11px;color:var(--muted);margin-bottom:8px}
-
 .control input[type=range]{width:100%;accent-color:var(--pink)}
-
 .control select{width:100%}
-
 .timeline{overflow-x:auto}
-
 .arrgrid{min-width:560px;display:grid;grid-template-columns:70px repeat(8,minmax(0,1fr));gap:5px}
-
 .clip{padding:8px 0;min-width:0}
-
 .clip.on{background:#7438a1;border-color:var(--blue)}
-
 .keyboard{display:grid;grid-template-columns:repeat(13,minmax(0,1fr));gap:3px}
-
 .key{height:65px;padding:3px;background:#eee;color:#111;font-size:10px;display:flex;align-items:end;justify-content:center}
-
 .key.black{background:#383849;color:white}
-
 .file{width:100%;margin:10px 0}
-
 [hidden]{display:none!important}
-
 @media(max-width:500px){header{padding:12px}.panel{padding:10px}.step{height:25px}.drumrow{grid-template-columns:48px minmax(0,1fr);gap:4px}.tabs{top:120px}.keyboard{gap:2px}.key{font-size:8px;height:55px}}
-
 </style>
-
 </head>
-
 <body>
-
 <header>
-
  <div class="top">
-
   <div><h1>FUSION <span>DAW</span></h1><div class="small">Mobile music production studio</div></div>
-
   <div class="top">
-
    <button id="flBtn" class="active">FL STUDIO</button>
-
    <button id="logicBtn">LOGIC PRO</button>
-
   </div>
-
  </div>
-
  <div class="transport">
-
   <button id="playBtn" class="primary">▶ PLAY</button>
-
   <button id="stopBtn">■ STOP</button>
-
   <label class="small">BPM <input id="bpm" type="number" min="40" max="220" value="120" style="width:65px"></label>
-
   <span id="audioStatus" class="small">Audio nog niet gestart</span>
-
  </div>
-
 </header>
 
 <nav class="tabs">
-
  <button class="active" data-tab="studio">Studio</button>
-
  <button data-tab="synth">Synth</button>
-
  <button data-tab="mixer">Mixer FX</button>
-
  <button data-tab="samples">Samples</button>
-
  <button data-tab="project">Project</button>
-
 </nav>
 
 <main>
-
 <section id="studio">
-
  <div class="panel" id="flWorkspace">
-
   <h2>Drum step sequencer</h2>
-
   <p class="hint">Tik op een stap om de drum aan of uit te zetten.</p>
-
   <div id="drums"></div>
-
   <button id="randomBtn">Random beat</button>
-
   <button id="clearBtn">Wis patroon</button>
-
   <hr style="border-color:var(--line);margin:18px 0">
-
   <h2>Piano-roll</h2>
-
   <p class="hint">Maak een melodie door noten op verschillende stappen te activeren.</p>
-
   <div id="piano"></div>
-
  </div>
 
  <div class="panel" id="logicWorkspace" hidden>
-
   <h2>Logic arrangement · 8 maten</h2>
-
   <p class="hint">Activeer clips om patronen per maat af te spelen.</p>
-
   <div class="timeline"><div id="arrgrid" class="arrgrid"></div></div>
-
   <p class="hint">De arrangementmodus gebruikt dezelfde drums, synth en effecten als de FL-modus.</p>
-
  </div>
-
 </section>
 
 <section id="synth" hidden>
-
  <div class="panel">
-
   <h2>Synthesizer</h2>
-
   <div class="controls">
-
    <div class="control"><label>Oscillator</label><select id="wave"><option value="sawtooth">Saw</option><option value="square">Square</option><option value="triangle">Triangle</option><option value="sine">Sine</option></select></div>
-
    <div class="control"><label>Filtertype</label><select id="filterType"><option value="lowpass">Low-pass</option><option value="highpass">High-pass</option><option value="bandpass">Band-pass</option></select></div>
-
    <div class="control"><label>Cutoff <span id="cutoffText">8000 Hz</span></label><input id="cutoff" type="range" min="100" max="16000" value="8000"></div>
-
    <div class="control"><label>Resonance <span id="qText">1</span></label><input id="q" type="range" min=".1" max="15" step=".1" value="1"></div>
-
    <div class="control"><label>Attack <span id="attackText">0.02 s</span></label><input id="attack" type="range" min=".01" max="2" step=".01" value=".02"></div>
-
    <div class="control"><label>Decay <span id="decayText">0.2 s</span></label><input id="decay" type="range" min=".01" max="2" step=".01" value=".2"></div>
-
    <div class="control"><label>Sustain <span id="sustainText">50%</span></label><input id="sustain" type="range" min="0" max="1" step=".01" value=".5"></div>
-
    <div class="control"><label>Release <span id="releaseText">0.4 s</span></label><input id="release" type="range" min=".01" max="4" step=".01" value=".4"></div>
-
   </div>
-
   <h2 style="margin-top:18px">Speel toetsen</h2>
-
   <div id="keyboard" class="keyboard"></div>
-
   <p class="hint">Houd een toets ingedrukt om een noot te spelen.</p>
-
  </div>
-
 </section>
 
 <section id="mixer" hidden>
-
  <div class="panel">
-
   <h2>Mixer & effecten</h2>
-
   <div class="controls">
-
    <div class="control"><label>Master volume <span id="masterText">80%</span></label><input id="master" type="range" min="0" max="1" step=".01" value=".8"></div>
-
    <div class="control"><label>Drumvolume <span id="drumVolText">80%</span></label><input id="drumVol" type="range" min="0" max="1" step=".01" value=".8"></div>
-
    <div class="control"><label>Synthvolume <span id="synthVolText">80%</span></label><input id="synthVol" type="range" min="0" max="1" step=".01" value=".8"></div>
-
    <div class="control"><label>Distortion <span id="distText">0%</span></label><input id="dist" type="range" min="0" max="1" step=".01" value="0"></div>
-
    <div class="control"><label>Delay mix <span id="delayText">0%</span></label><input id="delay" type="range" min="0" max="1" step=".01" value="0"></div>
-
    <div class="control"><label>Delay feedback <span id="feedbackText">25%</span></label><input id="feedback" type="range" min="0" max=".9" step=".01" value=".25"></div>
-
    <div class="control"><label>Reverb mix <span id="reverbText">15%</span></label><input id="reverb" type="range" min="0" max="1" step=".01" value=".15"></div>
-
    <div class="control"><label>Compressor threshold <span id="compText">-18 dB</span></label><input id="comp" type="range" min="-40" max="0" value="-18"></div>
-
   </div>
-
  </div>
-
 </section>
 
 <section id="samples" hidden>
-
  <div class="panel">
-
   <h2>Sample player</h2>
-
   <p class="hint">Laad een eigen audiofragment vanaf je iPhone.</p>
-
   <input class="file" id="sampleFile" type="file" accept="audio/*">
-
   <button id="samplePlay" class="primary">▶ SPEEL SAMPLE</button>
-
   <button id="sampleStop">■ STOP SAMPLE</button>
-
   <div id="sampleStatus" class="status">Geen sample geladen.</div>
-
   <div class="control" style="margin-top:12px"><label>Samplevolume</label><input id="sampleVol2" type="range" min="0" max="1" step=".01" value=".8"></div>
-
  </div>
-
  <div class="panel">
-
   <h2>Audio-opname</h2>
-
   <p class="hint">Neem de audio-uitgang op als je browser MediaRecorder ondersteunt.</p>
-
   <button id="recordBtn" class="primary">● Start opname</button>
-
   <button id="downloadBtn" disabled>Download opname</button>
-
   <div id="recordStatus" class="status">Niet aan het opnemen.</div>
-
  </div>
-
 </section>
 
 <section id="project" hidden>
-
  <div class="panel">
-
   <h2>Projectbeheer</h2>
-
   <label class="small">Projectnaam</label>
-
   <input id="projectName" value="Mijn Fusion Beat" style="width:100%;padding:10px;background:#111;color:white;border:1px solid var(--line);border-radius:8px;margin:8px 0">
-
   <button id="saveBtn" class="primary">Bewaar op deze iPhone</button>
-
   <button id="exportBtn">Exporteer JSON</button>
-
   <input id="importFile" type="file" accept=".json,application/json" class="file">
-
   <button id="importBtn">Importeer project</button>
-
   <div id="projectStatus" class="status"></div>
-
  </div>
-
 </section>
-
 </main>
 
 <script>
-
 (()=>{
-
 "use strict";
-
 const $=id=>document.getElementById(id);
-
 let mode="fl",step=0,ready=false,repeatId=null,sample=null,recorder=null,chunks=[],lastRecording=null;
-
 const drumNames=["Kick","Snare","Hi-hat","Clap"];
-
 const notes=["C5","B4","A4","G4","F4","E4","D4","C4"];
-
 let patterns={
-
  Kick:[1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0],
-
  Snare:[0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0],
-
  "Hi-hat":[1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0],
-
  Clap:Array(16).fill(0)
-
 };
-
 let melody=notes.map((n,r)=>Array.from({length:16},(_,i)=>r===7&&i%4===0?1:0));
-
 let clips={
-
  Kick:Array(8).fill(1),Snare:Array(8).fill(1),
-
  "Hi-hat":Array(8).fill(1),Clap:Array(8).fill(0),Synth:Array(8).fill(1)
-
 };
-
 let a={};
 
 function msg(t){$("audioStatus").textContent=t}
-
 function startEngine(){
-
  if(ready)return;
-
  if(!window.Tone){msg("Tone.js niet geladen. Controleer internet.");return}
-
  a.master=new Tone.Gain(+$("master").value);
-
  a.filter=new Tone.Filter(+$("cutoff").value,$("filterType").value);
-
  a.dist=new Tone.Distortion(+$("dist").value);
-
  a.delay=new Tone.FeedbackDelay("8n",+$("feedback").value);
-
  a.reverb=new Tone.Reverb({decay:2.5,wet:+$("reverb").value});
-
  a.comp=new Tone.Compressor(+$("comp").value,3);
-
  a.drumGain=new Tone.Gain(+$("drumVol").value);
-
  a.synthGain=new Tone.Gain(+$("synthVol").value);
-
  a.sampleGain=new Tone.Gain(+$("sampleVol2").value);
-
  a.filter.connect(a.dist);
-
  a.dist.connect(a.delay);
-
  a.delay.connect(a.reverb);
-
  a.reverb.connect(a.comp);
-
  a.comp.connect(a.master);
-
  a.master.toDestination();
-
  a.drumGain.connect(a.filter);
-
  a.synthGain.connect(a.filter);
-
  a.sampleGain.connect(a.filter);
-
  a.synth=new Tone.PolySynth(Tone.Synth,{
-
   oscillator:{type:$("wave").value},
-
   envelope:{attack:+$("attack").value,decay:+$("decay").value,sustain:+$("sustain").value,release:+$("release").value}
-
  });
-
  a.synth.connect(a.synthGain);
-
  a.kick=new Tone.MembraneSynth({pitchDecay:.04,octaves:6,envelope:{attack:.001,decay:.3,sustain:0,release:.05}});
-
  a.snare=new Tone.NoiseSynth({noise:{type:"white"},envelope:{attack:.001,decay:.15,sustain:0}});
-
  a.hat=new Tone.MetalSynth({frequency:240,envelope:{attack:.001,decay:.06,release:.01},harmonicity:5,modulationIndex:32,resonance:4000,octaves:1.5});
-
  a.clap=new Tone.NoiseSynth({noise:{type:"pink"},envelope:{attack:.001,decay:.1,sustain:0}});
-
  a.kick.connect(a.drumGain);a.snare.connect(a.drumGain);
-
  a.hat.connect(a.drumGain);a.clap.connect(a.drumGain);
-
  ready=true;updateFX();msg("Audio-engine actief");
-
 }
-
 async function play(){
-
  startEngine();if(!ready)return;
-
  await Tone.start();
-
  Tone.getTransport().bpm.value=+$("bpm").value;
-
  if(repeatId===null){
-
   repeatId=Tone.getTransport().scheduleRepeat((time)=>{
-
    const s=step,bar=Math.floor(Tone.getTransport().ticks/Tone.Time("1m").toTicks())%8;
-
    const active=t=>mode==="fl"||!!clips[t]?.[bar];
-
    if(active("Kick")&&patterns.Kick[s])a.kick.triggerAttackRelease("C1","8n",time);
-
    if(active("Snare")&&patterns.Snare[s])a.snare.triggerAttackRelease("16n",time);
-
    if(active("Hi-hat")&&patterns["Hi-hat"][s])a.hat.triggerAttackRelease("32n",time,.35);
-
    if(active("Clap")&&patterns.Clap[s])a.clap.triggerAttackRelease("16n",time,.5);
-
    if(active("Synth")&&melody.some(r=>r[s]))melody.forEach((r,i)=>{if(r[s])a.synth.triggerAttackRelease(notes[i],"8n",time,.5)});
-
    highlight(s);step=(step+1)%16;
-
   },"16n");
-
  }
-
  Tone.getTransport().start();
-
  $("playBtn").textContent="❚❚ PLAYING";msg("Afspelen · BPM "+$("bpm").value);
-
 }
-
 function stop(){
-
  if(ready){Tone.getTransport().stop();Tone.getTransport().position=0;a.synth.releaseAll()}
-
  step=0;highlight(-1);$("playBtn").textContent="▶ PLAY";msg("Gestopt");
-
 }
-
 function highlight(s){
-
  document.querySelectorAll(".step,.note").forEach(b=>b.style.outline="");
-
  if(s>=0)document.querySelectorAll('[data-step="'+s+'"]').forEach(b=>b.style.outline="2px solid var(--blue)");
-
 }
-
 function renderDrums(){
-
  const g=$("drums");g.innerHTML="";
-
  drumNames.forEach(t=>{
-
   const row=document.createElement("div");row.className="drumrow";
-
   const label=document.createElement("span");label.className="trackname";label.textContent=t;row.append(label);
-
   const cells=document.createElement("div");cells.className="grid";
-
   patterns[t].forEach((v,i)=>{
-
    const b=document.createElement("button");b.className="step"+(v?" on":"");b.dataset.step=i;
-
    b.setAttribute("aria-label",t+" stap "+(i+1));
-
    b.onclick=()=>{patterns[t][i]=1-patterns[t][i];b.classList.toggle("on",!!patterns[t][i])};
-
    cells.append(b);
-
   });row.append(cells);g.append(row);
-
  });
-
 }
-
 function renderPiano(){
-
  const g=$("piano");g.innerHTML="";
-
  notes.forEach((n,r)=>{
-
   const row=document.createElement("div");row.className="pianorow";
-
   const label=document.createElement("span");label.className="trackname";label.textContent=n;row.append(label);
-
   melody[r].forEach((v,c)=>{
-
    const b=document.createElement("button");b.className="note"+(v?" on":"");b.dataset.step=c;
-
    b.onclick=()=>{melody[r][c]=1-melody[r][c];b.classList.toggle("on",!!melody[r][c])};
-
    row.append(b);
-
   });g.append(row);
-
  });
-
 }
-
 function renderArrangement(){
-
  const g=$("arrgrid");g.innerHTML="";
-
  const blank=document.createElement("span");blank.className="small";blank.textContent="TRACK";g.append(blank);
-
  for(let i=1;i<=8;i++){const n=document.createElement("span");n.className="small";n.textContent="Maat "+i;g.append(n)}
-
  Object.keys(clips).forEach(t=>{
-
   const name=document.createElement("span");name.className="trackname";name.textContent=t;g.append(name);
-
   clips[t].forEach((v,i)=>{
-
    const b=document.createElement("button");b.className="clip"+(v?" on":"");b.textContent=v?"●":"+";
-
    b.onclick=()=>{clips[t][i]=1-clips[t][i];b.classList.toggle("on",!!clips[t][i]);b.textContent=clips[t][i]?"●":"+"};
-
    g.append(b);
-
   });
-
  });
-
 }
-
 function renderKeyboard(){
-
  const g=$("keyboard");
-
  const keys=[["C4",0],["C#4",1],["D4",0],["D#4",1],["E4",0],["F4",0],["F#4",1],["G4",0],["G#4",1],["A4",0],["A#4",1],["B4",0],["C5",0]];
-
  keys.forEach(([n,black])=>{
-
   const b=document.createElement("button");b.className="key"+(black?" black":"");b.textContent=n;
-
   b.onpointerdown=async e=>{e.preventDefault();startEngine();if(!ready)return;await Tone.start();a.synth.triggerAttack(n)};
-
   const release=()=>{if(ready)a.synth.triggerRelease(n)};
-
   b.onpointerup=release;b.onpointerleave=release;g.append(b);
-
  });
-
 }
-
 function setMode(m){
-
  mode=m;$("flBtn").classList.toggle("active",m==="fl");$("logicBtn").classList.toggle("active",m==="logic");
-
  $("flWorkspace").hidden=m!=="fl";$("logicWorkspace").hidden=m!=="logic";
-
 }
-
 function showTab(id){
-
  document.querySelectorAll("main>section").forEach(s=>s.hidden=true);
-
  $(id).hidden=false;
-
  document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("active",b.dataset.tab===id));
-
 }
-
 function updateFX(){
-
  if(!ready)return;
-
  a.master.gain.value=+$("master").value;
-
  a.drumGain.gain.value=+$("drumVol").value;
-
  a.synthGain.gain.value=+$("synthVol").value;
-
  a.sampleGain.gain.value=+$("sampleVol2").value;
-
  a.filter.frequency.value=+$("cutoff").value;
-
  a.filter.Q.value=+$("q").value;a.filter.type=$("filterType").value;
-
  a.dist.distortion=+$("dist").value;
-
  a.delay.feedback.value=+$("feedback").value;a.delay.wet.value=+$("delay").value;
-
  a.reverb.wet.value=+$("reverb").value;
-
  a.comp.threshold.value=+$("comp").value;
-
  a.synth.set({oscillator:{type:$("wave").value},envelope:{
-
   attack:+$("attack").value,decay:+$("decay").value,
-
   sustain:+$("sustain").value,release:+$("release").value
-
  }});
-
 }
-
 const controls=["master","drumVol","synthVol","dist","delay","feedback","reverb","comp","cutoff","q","attack","decay","sustain","release","wave","filterType","sampleVol2"];
-
 controls.forEach(id=>{
-
  $(id).addEventListener("input",()=>{
-
   const el=$(id),val=el.value;
-
   const labels={master:"masterText",drumVol:"drumVolText",synthVol:"synthVolText",dist:"distText",delay:"delayText",feedback:"feedbackText",reverb:"reverbText",comp:"compText",cutoff:"cutoffText",q:"qText",attack:"attackText",decay:"decayText",sustain:"sustainText",release:"releaseText"};
-
   if(labels[id]){
-
    const suffix=["master","drumVol","synthVol","dist","delay","reverb"].includes(id)?"%":id==="comp"?" dB":id==="cutoff"?" Hz":["attack","decay","release"].includes(id)?" s":"";
-
    const value=["master","drumVol","synthVol","dist","delay","reverb"].includes(id)?Math.round(+val*100):val;
-
    $(labels[id]).textContent=value+suffix;
-
   }
-
   updateFX();
-
  });
-
 });
-
 $("playBtn").onclick=play;$("stopBtn").onclick=stop;
-
 $("flBtn").onclick=()=>setMode("fl");$("logicBtn").onclick=()=>setMode("logic");
-
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
-
 $("bpm").onchange=()=>{let v=Math.max(40,Math.min(220,+$("bpm").value||120));$("bpm").value=v;if(ready)Tone.getTransport().bpm.rampTo(v,.1)};
-
 $("randomBtn").onclick=()=>{
-
  patterns.Kick=Array.from({length:16},(_,i)=>i%4===0?1:Math.random()<.07?1:0);
-
  patterns.Snare=Array.from({length:16},(_,i)=>[4,12].includes(i)?1:Math.random()<.04?1:0);
-
  patterns["Hi-hat"]=Array.from({length:16},()=>Math.random()<.7?1:0);
-
  patterns.Clap=Array.from({length:16},(_,i)=>[4,12].includes(i)&&Math.random()<.4?1:0);
-
  renderDrums();
-
 };
-
 $("clearBtn").onclick=()=>{Object.values(patterns).forEach(p=>p.fill(0));melody.forEach(r=>r.fill(0));renderDrums();renderPiano()};
-
 $("sampleFile").onchange=async e=>{
-
  const file=e.target.files[0];if(!file)return;
-
  startEngine();if(!ready)return;await Tone.start();
-
  if(sample)sample.dispose();
-
  sample=new Tone.Player(URL.createObjectURL(file),()=>{$("sampleStatus").textContent="Geladen: "+file.name});
-
  sample.connect(a.sampleGain);
-
 };
-
 $("samplePlay").onclick=async()=>{if(!sample)return;await Tone.start();sample.start()};
-
 $("sampleStop").onclick=()=>sample?.stop();
 
 function snapshot(){return {name:$("projectName").value,bpm:+$("bpm").value,mode,patterns,melody,clips,
-
  controls:Object.fromEntries(controls.map(id=>[id,$(id).value]))}}
-
 function applyProject(p){
-
  if(!p||!p.patterns||!p.melody||!p.clips)throw Error("Ongeldig Fusion-project");
-
  patterns=p.patterns;melody=p.melody;clips=p.clips;
-
  $("projectName").value=p.name||"Mijn Fusion Beat";$("bpm").value=p.bpm||120;
-
  controls.forEach(id=>{if(p.controls&&p.controls[id]!==undefined)$(id).value=p.controls[id]});
-
  renderDrums();renderPiano();renderArrangement();setMode(p.mode==="logic"?"logic":"fl");updateFX();
-
 }
-
 function download(blob,name){
-
  const url=URL.createObjectURL(blob),a=document.createElement("a");
-
  a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);
-
 }
-
 $("saveBtn").onclick=()=>{
-
  try{localStorage.setItem("fusionDAW",JSON.stringify(snapshot()));$("projectStatus").textContent="Project lokaal opgeslagen."}
-
  catch(e){$("projectStatus").textContent="Opslaan niet beschikbaar in deze browser."}
-
 };
-
 $("exportBtn").onclick=()=>download(new Blob([JSON.stringify(snapshot(),null,2)],{type:"application/json"}),($("projectName").value||"fusion-project")+".json");
-
 $("importBtn").onclick=async()=>{
-
  const file=$("importFile").files[0];if(!file){$("projectStatus").textContent="Kies eerst een JSON-projectbestand.";return}
-
  try{applyProject(JSON.parse(await file.text()));$("projectStatus").textContent="Project geïmporteerd."}
-
  catch(e){$("projectStatus").textContent="Import mislukt: "+e.message}
-
 };
-
 let chunks=[],recorder=null,lastRecording=null;
-
 $("recordBtn").onclick=async()=>{
-
  if(recorder&&recorder.state==="recording"){recorder.stop();return}
-
  startEngine();if(!ready)return;await Tone.start();
-
  try{
-
   const ctx=Tone.getContext().rawContext,dest=ctx.createMediaStreamDestination();
-
   Tone.getDestination().connect(dest);
-
   const mime=["audio/webm;codecs=opus","audio/webm","audio/mp4"].find(t=>MediaRecorder.isTypeSupported(t));
-
   recorder=new MediaRecorder(dest.stream,mime?{mimeType:mime}:undefined);chunks=[];
-
   recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
-
   recorder.onstop=()=>{
-
    lastRecording=new Blob(chunks,{type:recorder.mimeType||"audio/webm"});
-
    $("downloadBtn").disabled=false;$("recordBtn").textContent="● Start opname";
-
    $("recordStatus").textContent="Opname klaar.";
-
   };
-
   recorder.start();$("recordBtn").textContent="■ Stop opname";$("recordStatus").textContent="Opname loopt…";
-
  }catch(e){$("recordStatus").textContent="Opname wordt niet ondersteund: "+e.message}
-
 };
-
 $("downloadBtn").onclick=()=>{if(lastRecording)download(lastRecording,"fusion-recording.webm")};
-
 renderDrums();renderPiano();renderArrangement();renderKeyboard();
-
 try{const saved=localStorage.getItem("fusionDAW");if(saved)applyProject(JSON.parse(saved))}catch(e){}
-
 })();
-
 </script>
-
 </body>
-
 </html>
