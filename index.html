@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fusion DAW</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #10111a;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    header {
+      padding: 22px 16px;
+      background: #1b1d2b;
+      border-bottom: 1px solid #34364a;
+    }
+    h1 { margin: 0 0 6px; color: #9c8cff; }
+    p { color: #b8bad0; }
+    main { padding: 16px; max-width: 900px; margin: auto; }
+    .switch { display: flex; gap: 10px; margin: 20px 0; }
+    button {
+      background: #292b40;
+      color: white;
+      border: 1px solid #454762;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    .switch button { flex: 1; }
+    button.active, .play {
+      background: #7965ed;
+      border-color: #7965ed;
+    }
+    .panel {
+      background: #1b1d2b;
+      padding: 16px;
+      border-radius: 14px;
+      margin-bottom: 16px;
+    }
+    .track {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 12px 0;
+    }
+    .track-name { width: 75px; font-size: 13px; }
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      gap: 5px;
+      flex: 1;
+    }
+    .step { padding: 0; height: 30px; }
+    .step.on { background: #24c8a5; color: #10111a; }
+    #status { min-height: 22px; color: #24c8a5; }
+    .small { font-size: 13px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Fusion DAW</h1>
+    <div>Jouw studio. Jouw sound.</div>
+  </header>
+
+  <main>
+    <h2>Kies je werkwijze</h2>
+    <div class="switch">
+      <button id="logicBtn" class="active" onclick="setMode('logic')">
+        Logic Mode
+      </button>
+      <button id="flBtn" onclick="setMode('fl')">
+        FL Mode
+      </button>
+    </div>
+
+    <section class="panel">
+      <h2 id="modeTitle">Logic Studio</h2>
+      <p id="modeDescription">
+        Werk met meerdere sporen voor vocals, drums en instrumenten.
+      </p>
+      <button class="play" onclick="playBeat()">▶ Test beat</button>
+      <button onclick="stopBeat()">■ Stop</button>
+      <p id="status">Studio klaar.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Drum sequencer</h2>
+      <p class="small">Tik op vakjes om je beat te maken.</p>
+      <div id="sequencer"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Project</h2>
+      <button onclick="saveProject()">Project opslaan</button>
+      <button onclick="loadProject()">Project laden</button>
+      <p class="small">
+        Dit prototype bewaart je patroon lokaal op dit apparaat.
+        Cloudopslag en echte audio-opname voegen we later toe.
+      </p>
+    </section>
+  </main>
+
+  <script>
+    const instruments = ["Kick", "Snare", "Hi-hat", "Clap"];
+    let mode = "logic";
+    let audioContext = null;
+    let beatTimer = null;
+    let currentStep = 0;
+
+    const pattern = instruments.map(() => Array(8).fill(false));
+
+    pattern[0][0] = true;
+    pattern[0][4] = true;
+    pattern[1][2] = true;
+    pattern[1][6] = true;
+    [0, 2, 4, 6].forEach(i => pattern[2][i] = true);
+
+    function buildSequencer() {
+      const container = document.getElementById("sequencer");
+      container.innerHTML = "";
+
+      instruments.forEach((name, row) => {
+        const track = document.createElement("div");
+        track.className = "track";
+
+        const label = document.createElement("div");
+        label.className = "track-name";
+        label.textContent = name;
+        track.appendChild(label);
+
+        const steps = document.createElement("div");
+        steps.className = "steps";
+
+        pattern[row].forEach((on, col) => {
+          const button = document.createElement("button");
+          button.className = "step" + (on ? " on" : "");
+          button.textContent = col + 1;
+          button.onclick = () => {
+            pattern[row][col] = !pattern[row][col];
+            buildSequencer();
+          };
+          steps.appendChild(button);
+        });
+
+        track.appendChild(steps);
+        container.appendChild(track);
+      });
+    }
+
+    function setMode(newMode) {
+      mode = newMode;
+      document.getElementById("logicBtn").classList.toggle(
+        "active", mode === "logic"
+      );
+      document.getElementById("flBtn").classList.toggle(
+        "active", mode === "fl"
+      );
+
+      document.getElementById("modeTitle").textContent =
+        mode === "logic" ? "Logic Studio" : "FL Beat Lab";
+
+      document.getElementById("modeDescription").textContent =
+        mode === "logic"
+          ? "Werk met meerdere sporen voor vocals, drums en instrumenten."
+          : "Bouw ritmes met een step sequencer en maak je eigen grooves.";
+
+      document.getElementById("status").textContent =
+        mode === "logic" ? "Logic Mode geselecteerd." : "FL Mode geselecteerd.";
+    }
+
+    function sound(type) {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioContext.state === "suspended") audioContext.resume();
+
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+
+      const now = audioContext.currentTime;
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.5, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+
+      if (type === 0) {
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(45, now + 0.15);
+      } else if (type === 1) {
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(180, now);
+      } else if (type === 2) {
+        osc.type = "square";
+        osc.frequency.setValueAtTime(800, now);
+      } else {
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(400, now);
+      }
+
+      osc.start(now);
+      osc.stop(now + 0.2);
+    }
+
+    function playBeat() {
+      stopBeat();
+      currentStep = 0;
+
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      audioContext.resume();
+
+      beatTimer = setInterval(() => {
+        pattern.forEach((row, instrument) => {
+          if (row[currentStep]) sound(instrument);
+        });
+        currentStep = (currentStep + 1) % 8;
+      }, 250);
+
+      document.getElementById("status").textContent = "Beat speelt!";
+    }
+
+    function stopBeat() {
+      if (beatTimer) clearInterval(beatTimer);
+      beatTimer = null;
+      document.getElementById("status").textContent = "Beat gestopt.";
+    }
+
+    function saveProject() {
+      localStorage.setItem("fusionDAW", JSON.stringify({ pattern, mode }));
+      document.getElementById("status").textContent = "Project lokaal opgeslagen.";
+    }
+
+    function loadProject() {
+      const saved = localStorage.getItem("fusionDAW");
+      if (!saved) {
+        document.getElementById("status").textContent = "Nog geen opgeslagen project.";
+        return;
+      }
+      const data = JSON.parse(saved);
+      data.pattern.forEach((row, i) => row.forEach((value, j) => pattern[i][j] = value));
+      setMode(data.mode || "logic");
+      buildSequencer();
+      document.getElementById("status").textContent = "Project geladen.";
+    }
+
+    buildSequencer();
+  </script>
+</body>
+</html>
